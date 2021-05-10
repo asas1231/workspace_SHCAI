@@ -19,6 +19,7 @@ import json
 import configparser
 # import cv2
 import queue
+import win32api, win32con
 
 import workspace.ImageData as ImgD
 import screen_recording.screen_recording
@@ -207,7 +208,7 @@ class Main_Widget(QWidget):
         grid = QGridLayout()
         self.screenRecording_recording_Button = QPushButton( "錄影開關" , self )
         grid.addWidget( self.screenRecording_recording_Button , *( 0 , 0 ) )
-        self.screenRecording_formula_label = QLabel( "" )
+        self.screenRecording_info_label = QLabel( "" )
         self.screenRecording_imagebox_item_widget = ImageboxItemWidget( self )
         
         grid.setColumnStretch( 0 , 1 )
@@ -220,7 +221,7 @@ class Main_Widget(QWidget):
         self.screenRecording_imagebox_item_widget.setSizePolicy( sp )
         layout = QVBoxLayout()
         layout.addLayout( grid )
-        layout.addWidget( self.screenRecording_formula_label )
+        layout.addWidget( self.screenRecording_info_label )
         layout.addWidget( self.screenRecording_imagebox_item_widget )
         
         stack = QWidget()
@@ -342,9 +343,11 @@ class Main_Widget(QWidget):
     
     def dev_ADB_test( self ):
         self.label_formula.setText( "目前此按鈕無功能" )
-        self.farm_exe.button_shopping = not self.farm_exe.button_shopping
-        if not self.farm_exe.alive():
-            self.farm_exe.start()
+        x , y = win32api.GetCursorPos()
+        print( 'mouse position: (%4d, %4d)' % ( x , y ) )
+        x += 20
+        y -= 10
+        win32api.SetCursorPos( ( x , y ) )
     
     def farm_wheat_switch( self ):
         self.farm_exe.wheat_switch()
@@ -363,6 +366,10 @@ class Main_Widget(QWidget):
     def screenRecording_recording_switch( self ):
         self.screenRecording_recording_mode = not self.screenRecording_recording_mode
         self.screenRecording_exe.set_save_mode( self.screenRecording_recording_mode )
+        if self.screenRecording_recording_mode:
+            self.screenRecording_info_label.setText( '正在錄影' )
+        else:
+            self.screenRecording_info_label.setText( '停止錄影' )
         # self.farm_exe.info_signal.emit( "傳真訂單-藍單 " + str( self.farm_exe.button_order ) )
         if not self.screenRecording_exe.alive():
             self.screenRecording_exe.start()
