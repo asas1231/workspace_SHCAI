@@ -18,6 +18,7 @@ import queue
 import time
 import random
 import winsound
+import win32api, win32con
 
 # import cv2
 # import skimage
@@ -41,7 +42,7 @@ class screenVideo( QtCore.QObject ):
         self.isSave = False
     
     def start_recording( self ):
-        self.timer.start( 1000 , self )
+        self.timer.start( 300 , self )
     
     def timerEvent( self , event ):
         if ( event.timerId() != self.timer.timerId() ):
@@ -139,7 +140,7 @@ class screenRecording( QThread ):
         return 'test\\test_%f.png' % time.time()
     
     def compare_image( self , img2 ):
-        hash_h , hash_w = ( 19 , 10 )
+        hash_h , hash_w = ( 8 , 8 )
         img1 = self.img_last
         Image_01 = Image.fromarray( img1 )
         Image_02 = Image.fromarray( img2 )
@@ -149,12 +150,14 @@ class screenRecording( QThread ):
         Image_gray_02 = ImageOps.grayscale( Image_02 )
         img1 = self.imgData.toNdarray( Image_gray_01 )
         img2 = self.imgData.toNdarray( Image_gray_02 )
+        img1 = img1[ 0 : hash_w , 0 : hash_h - 1 ]
+        img2 = img2[ 0 : hash_w , 0 : hash_h - 1 ]
         img1_average = np.sum( img1 ) / ( hash_h * hash_w )
         img2_average = np.sum( img2 ) / ( hash_h * hash_w )
         hash_str_01 = ""
         hash_str_02 = ""
         # 均值
-        for i in range( hash_h ):
+        for i in range( hash_h - 1 ):
             for j in range( hash_w ):
                 if img1[ j , i ] > img1_average:
                     hash_str_01 = hash_str_01 + "1"
@@ -166,7 +169,7 @@ class screenRecording( QThread ):
                     hash_str_02 = hash_str_02 + "0"
         
         # 差值
-        for i in range( hash_h ):
+        for i in range( hash_h - 1 ):
             for j in range( hash_w ):
                 if j + 1 < hash_w and img1[ j , i ] > img1[ j + 1 , i ]:
                     hash_str_01 = hash_str_01 + "1"
@@ -181,6 +184,37 @@ class screenRecording( QThread ):
         return hash_str_01 == hash_str_02
 
 
+class preventLockDesktop( QtCore.QObject ):
+    def __init__( self , parent = None ):
+        super().__init__( parent )
+        
+        self.timer = QtCore.QBasicTimer()
+        self.isWork = False
+        self.isPause = False
+        self.mx = 0
+        self.my = 0
+    
+    def start_prevent( self ):
+        if self.isWork == False:
+            self.timer.start( 300000 , self ) # 5 分鐘
+    
+    def timerEvent( self , event ):
+        if ( event.timerId() != self.timer.timerId() ):
+            print( 'event.timerId() = %d, timer.timerId() = %d' % ( event.timerId() , self.timer.timerId() ) )
+            return
+        
+        if self.isPause:
+            return
+        
+        x , y = win32api.GetCursorPos()
+        if x == self.mx and y == self.my:
+            win32api.SetCursorPos( ( x + 1 , y ) )
+            win32api.SetCursorPos( ( x - 1 , y ) )
+        
+        self.mx = x
+        self.my = y
+        
+
 class screenRecording_control( QThread ):
     def __init__( self , parent = None ):
         QThread.__init__( self , parent = parent )
@@ -192,6 +226,8 @@ class screenRecording_control( QThread ):
         self.screen_video = screenVideo()
         self.screen_video.image_data.connect( self.screen_recording.image_data_slot )
         self.screen_video.start_recording()
+        self.prevent_lock_desktop = preventLockDesktop()
+        self.prevent_lock_desktop.start_prevent()
     
     def alive( self ):
         return self.isWork == True
@@ -205,6 +241,9 @@ class screenRecording_control( QThread ):
         self.screen_recording.isSave = isSave
         self.screen_video.isSave     = isSave
         print( isSave )
+    
+    def set_save_mode( self , value ):
+        self.prevent_lock_desktop.isPause = not value
 
 if __name__ == "__main__":
     img = QImage( os.path.join( "dev" , "熊大農場" , "ADB_0223.png" ) )

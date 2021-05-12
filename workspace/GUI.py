@@ -208,6 +208,8 @@ class Main_Widget(QWidget):
         grid = QGridLayout()
         self.screenRecording_recording_Button = QPushButton( "錄影開關" , self )
         grid.addWidget( self.screenRecording_recording_Button , *( 0 , 0 ) )
+        self.screenRecording_prevent_lock_desktop_CheckBox = QCheckBox( '防止登出' , self )
+        grid.addWidget( self.screenRecording_prevent_lock_desktop_CheckBox , *( 0 , 2 ) )
         self.screenRecording_info_label = QLabel( "" )
         self.screenRecording_imagebox_item_widget = ImageboxItemWidget( self )
         
@@ -279,6 +281,7 @@ class Main_Widget(QWidget):
         self.screenRecording_recording_mode = False
         self.screenRecording_exe = screen_recording.screen_recording.screenRecording_control()
         self.screenRecording_recording_Button.clicked.connect( self.screenRecording_recording_switch )
+        self.screenRecording_prevent_lock_desktop_CheckBox.clicked.connect( self.screenRecording_prevent_lock_desktop_switch )
     
     def UI_list_display( self , UI_index ):
         self.UI_stack.setCurrentIndex( UI_index )
@@ -508,7 +511,16 @@ class Main_Widget(QWidget):
     @pyqtSlot( str )
     def farm_info( self , info ):
         self.farm_time_label.setText( info )
-
+    
+    def screenRecording_prevent_lock_desktop_switch( self ):
+        if self.screenRecording_prevent_lock_desktop_CheckBox.isChecked():
+            self.screenRecording_exe.set_save_mode( True )
+        else:
+            self.screenRecording_exe.set_save_mode( False )
+        
+        if not self.screenRecording_exe.alive():
+            self.screenRecording_exe.start()
+            
 
 class BackendThread_click_answer( QThread ):
     endSignal = pyqtSignal()
