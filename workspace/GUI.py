@@ -210,6 +210,8 @@ class Main_Widget(QWidget):
         grid.addWidget( self.screenRecording_recording_Button , *( 0 , 0 ) )
         self.screenRecording_prevent_lock_desktop_CheckBox = QCheckBox( '防止登出' , self )
         grid.addWidget( self.screenRecording_prevent_lock_desktop_CheckBox , *( 0 , 2 ) )
+        self.screenRecording_screenshot_Button = QPushButton( '擷取圖片' , self )
+        grid.addWidget( self.screenRecording_screenshot_Button , *( 1 , 0 ) )
         self.screenRecording_info_label = QLabel( "" )
         self.screenRecording_imagebox_item_widget = ImageboxItemWidget( self )
         
@@ -279,9 +281,10 @@ class Main_Widget(QWidget):
     
     def initParameters_screenRecording( self ):
         self.screenRecording_recording_mode = False
-        self.screenRecording_exe = screen_recording.screen_recording.screenRecording_control()
+        self.screenRecording_exe = screen_recording.screen_recording.screenRecording_control( save_path = self.screenRecording_save_path )
         self.screenRecording_recording_Button.clicked.connect( self.screenRecording_recording_switch )
         self.screenRecording_prevent_lock_desktop_CheckBox.clicked.connect( self.screenRecording_prevent_lock_desktop_switch )
+        self.screenRecording_screenshot_Button.clicked.connect( self.screenRecording_screenshot )
     
     def UI_list_display( self , UI_index ):
         self.UI_stack.setCurrentIndex( UI_index )
@@ -291,7 +294,6 @@ class Main_Widget(QWidget):
         self.config = configparser.ConfigParser()
         cfgpath = os.path.join( 'profile' , 'workspace.ini' )
         self.config.read( cfgpath , encoding = 'utf-8' )
-        
         
         # GUI
         if not 'GUI' in self.config.sections():
@@ -320,6 +322,12 @@ class Main_Widget(QWidget):
         self.ADB_screenshot_id = int( self.config[ 'GUI_ADB' ].get( 'screenshot_id' , '0' ) )
         self.ADB_address = self.config[ 'GUI_ADB' ].get( 'ADB_address' , '127.0.0.1:62001' )
         self.ADB_screenshot_path = self.config[ 'GUI_ADB' ].get( 'screenshot_path' , 'data' )
+        
+        # screenRecording
+        if not 'screenRecording' in self.config.sections():
+            self.config[ 'screenRecording' ] = {}
+        self.screenRecording_save_path = self.config[ 'screenRecording' ].get( 'save_path' , 'test' )
+        
     
     def Save_ini( self ):
         # GUI
@@ -338,6 +346,9 @@ class Main_Widget(QWidget):
         self.config[ 'GUI_ADB' ][ 'screenshot_save' ] = str( self.ADB_screenshot_do )
         self.config[ 'GUI_ADB' ][ 'screenshot_id'   ] = str( self.ADB_screenshot_id )
         # self.config[ 'GUI_ADB' ][ 'ADB_address'     ] = self.ADB_address_Edit.text()
+        
+        # screenRecording
+        self.config[ 'screenRecording' ][ 'save_path' ] = self.screenRecording_save_path
         
         # config file
         cfgpath = os.path.join( 'profile' , 'workspace.ini' )
@@ -520,7 +531,11 @@ class Main_Widget(QWidget):
         
         if not self.screenRecording_exe.alive():
             self.screenRecording_exe.start()
-            
+    
+    def screenRecording_screenshot( self ):
+        self.screenRecording_exe.get_screenshot()
+        if not self.screenRecording_exe.alive():
+            self.screenRecording_exe.start()
 
 class BackendThread_click_answer( QThread ):
     endSignal = pyqtSignal()

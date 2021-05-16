@@ -71,6 +71,10 @@ os.statvfs
 >> Unix 系統可用, 資料夾空間訊息, 類似 df
 os.listdir( dirpath )
 >> 列出指定路徑的檔案、資料夾清單
+os.makedirs( dir_path )
+>> 遞迴建立資料夾
+os.mkdir( dir_path )
+>> 建立一層資料夾
 #sys
 argc = len( sys.argv )
 
@@ -163,3 +167,9 @@ with open( fileName , 'w' , encoding = 'utf-8' ) as fp:
 
 #Excel operate
 ...
+
+#time
+time.time()
+
+#datetime
+datetime.datetime.now().strftime( "%Y%m%d_%%05d.png" )
