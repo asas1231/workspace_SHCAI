@@ -1,0 +1,3 @@
+*.pyc
+profile\\*.ini
+test\\*
