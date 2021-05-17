@@ -282,6 +282,7 @@ class Main_Widget(QWidget):
     def initParameters_screenRecording( self ):
         self.screenRecording_recording_mode = False
         self.screenRecording_exe = screen_recording.screen_recording.screenRecording_control( save_path = self.screenRecording_save_path )
+        self.screenRecording_exe.start()
         self.screenRecording_recording_Button.clicked.connect( self.screenRecording_recording_switch )
         self.screenRecording_prevent_lock_desktop_CheckBox.clicked.connect( self.screenRecording_prevent_lock_desktop_switch )
         self.screenRecording_screenshot_Button.clicked.connect( self.screenRecording_screenshot )
@@ -379,7 +380,9 @@ class Main_Widget(QWidget):
     
     def screenRecording_recording_switch( self ):
         self.screenRecording_recording_mode = not self.screenRecording_recording_mode
-        self.screenRecording_exe.set_save_mode( self.screenRecording_recording_mode )
+        # print( 'GUI recording mode: ' , self.screenRecording_recording_mode )
+        # print( 'Alive: ' , self.screenRecording_exe.alive() )
+        self.screenRecording_exe.set_screenshot_save_mode( self.screenRecording_recording_mode )
         if self.screenRecording_recording_mode:
             self.screenRecording_info_label.setText( '正在錄影' )
         else:
@@ -525,9 +528,9 @@ class Main_Widget(QWidget):
     
     def screenRecording_prevent_lock_desktop_switch( self ):
         if self.screenRecording_prevent_lock_desktop_CheckBox.isChecked():
-            self.screenRecording_exe.set_save_mode( True )
+            self.screenRecording_exe.set_prevent_pause_mode( True )
         else:
-            self.screenRecording_exe.set_save_mode( False )
+            self.screenRecording_exe.set_prevent_pause_mode( False )
         
         if not self.screenRecording_exe.alive():
             self.screenRecording_exe.start()

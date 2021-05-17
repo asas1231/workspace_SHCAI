@@ -45,7 +45,7 @@ class screenVideo( QtCore.QObject ):
         self.get_screenshot_limit = 0
     
     def start_recording( self ):
-        self.timer.start( 300 , self )
+        self.timer.start( 100 , self )
     
     def timerEvent( self , event ):
         if ( event.timerId() != self.timer.timerId() ):
@@ -58,11 +58,13 @@ class screenVideo( QtCore.QObject ):
             self.image_data.emit( data )
     
     def get_screenshot( self ):
+        # print( self.get_screenshot_count , self.get_screenshot_limit )
         if self.get_screenshot_count < self.get_screenshot_limit:
             self.get_screenshot_count += 1
             img = ImageGrab.grab()
             return [ True , self.imgData.toNdarray( img ) ]
         
+        # print( self.isSave )
         if not self.isSave:
             return [ False , False ]
         
@@ -150,10 +152,15 @@ class screenRecording( QThread ):
         return image
     
     def get_file_name( self ):
-        return os.path.join( self.save_path , self.save_file_format % time.time() )
+        while True:
+            fn = os.path.join( self.save_path , self.save_file_format % self.file_name_count )
+            if not os.path.isfile( fn ):
+                break
+            self.file_name_count += 1
+        return fn
     
     def compare_image( self , img2 ):
-        hash_h , hash_w = ( 8 , 8 )
+        hash_h , hash_w = ( 10 , 19 )
         img1 = self.img_last
         Image_01 = Image.fromarray( img1 )
         Image_02 = Image.fromarray( img2 )
@@ -163,23 +170,23 @@ class screenRecording( QThread ):
         Image_gray_02 = ImageOps.grayscale( Image_02 )
         img1 = self.imgData.toNdarray( Image_gray_01 )
         img2 = self.imgData.toNdarray( Image_gray_02 )
-        img1 = img1[ 0 : hash_w , 0 : hash_h - 1 ]
+        img1 = img1[ 0 : hash_w , 0 : hash_h - 1 ] # 少掉畫面底部
         img2 = img2[ 0 : hash_w , 0 : hash_h - 1 ]
         img1_average = np.sum( img1 ) / ( hash_h * hash_w )
         img2_average = np.sum( img2 ) / ( hash_h * hash_w )
         hash_str_01 = ""
         hash_str_02 = ""
         # 均值
-        # for i in range( hash_h - 1 ):
-            # for j in range( hash_w ):
-                # if img1[ j , i ] > img1_average:
-                    # hash_str_01 = hash_str_01 + "1"
-                # else:
-                    # hash_str_01 = hash_str_01 + "0"
-                # if img2[ j , i ] > img2_average:
-                    # hash_str_02 = hash_str_02 + "1"
-                # else:
-                    # hash_str_02 = hash_str_02 + "0"
+        for i in range( hash_h - 1 ):
+            for j in range( hash_w ):
+                if img1[ j , i ] > img1_average:
+                    hash_str_01 = hash_str_01 + "1"
+                else:
+                    hash_str_01 = hash_str_01 + "0"
+                if img2[ j , i ] > img2_average:
+                    hash_str_02 = hash_str_02 + "1"
+                else:
+                    hash_str_02 = hash_str_02 + "0"
         
         # 差值
         for i in range( hash_h - 1 ):
@@ -206,9 +213,8 @@ class preventLockDesktop( QtCore.QObject ):
         self.mx = 0
         self.my = 0
     
-    # def start_prevent( self ):
-        # if self.isWork == False:
-            # self.timer.start( 300000 , self ) # 5 分鐘檢查一次, 15 分鐘無動作自動登出
+    def start_prevent( self ):
+        self.timer.start( 300000 , self ) # 5 分鐘檢查一次, 15 分鐘無動作自動登出
     
     def timerEvent( self , event ):
         if ( event.timerId() != self.timer.timerId() ):
@@ -228,7 +234,7 @@ class preventLockDesktop( QtCore.QObject ):
         
 
 class screenRecording_control( QThread ):
-    def __init__( self , save_path = "test" , parent = None ):
+    def __init__( self , save_path = "" , parent = None ):
         QThread.__init__( self , parent = parent )
         self.q_cmd = queue.Queue()
         self.isWork = False
@@ -239,8 +245,7 @@ class screenRecording_control( QThread ):
         self.screen_video.image_data.connect( self.screen_recording.image_data_slot )
         self.screen_video.start_recording()
         self.prevent_lock_desktop = preventLockDesktop()
-        # 5 分鐘檢查一次, 15 分鐘無動作自動登出
-        self.prevent_lock_desktop.timer.start( 300000 , self )
+        self.prevent_lock_desktop.start_prevent()
     
     def alive( self ):
         return self.isWork == True
@@ -249,13 +254,14 @@ class screenRecording_control( QThread ):
         self.isWork = True
         while self.alive():
             self.q_cmd.get()
+        self.isWork = False
     
-    def set_save_mode( self , isSave ):
-        self.screen_recording.isSave = True
-        self.screen_video.isSave     = isSave
+    def set_screenshot_save_mode( self , isSave ):
         print( isSave )
+        self.screen_video.isSave     = isSave
+        # self.screen_recording.isSave = True
     
-    def set_save_mode( self , value ):
+    def set_prevent_pause_mode( self , value ):
         self.prevent_lock_desktop.isPause = not value
     
     def get_screenshot( self ):
