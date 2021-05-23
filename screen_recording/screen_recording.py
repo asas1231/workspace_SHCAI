@@ -40,12 +40,12 @@ class screenVideo( QtCore.QObject ):
         
         self.timer = QtCore.QBasicTimer()
         self.imgData = ImgD.ImageData()
-        self.isSave = False
-        self.get_screenshot_count = 0
-        self.get_screenshot_limit = 0
     
     def start_recording( self ):
-        self.timer.start( 100 , self )
+        self.timer.start( 200 , self )
+        
+    def stop_recording( self ):
+        self.timer.stop()
     
     def timerEvent( self , event ):
         if ( event.timerId() != self.timer.timerId() ):
@@ -58,18 +58,8 @@ class screenVideo( QtCore.QObject ):
             self.image_data.emit( data )
     
     def get_screenshot( self ):
-        # print( self.get_screenshot_count , self.get_screenshot_limit )
-        if self.get_screenshot_count < self.get_screenshot_limit:
-            self.get_screenshot_count += 1
-            img = ImageGrab.grab()
-            return [ True , self.imgData.toNdarray( img ) ]
-        
-        # print( self.isSave )
-        if not self.isSave:
-            return [ False , False ]
-        
         img = ImageGrab.grab()
-        return [ self.isSave , self.imgData.toNdarray( img ) ]
+        return [ True , self.imgData.toNdarray( img ) ]
 
 class screenRecording( QThread ):
     info_signal = QtCore.pyqtSignal( str )
@@ -121,7 +111,6 @@ class screenRecording( QThread ):
                 time.sleep( duration / 1000 )
                 i += 1
             else:
-                # print( i , ":" , s[ i ] )
                 j = i + 1
                 while s[ j ] == "-":
                     j += 1
@@ -160,20 +149,20 @@ class screenRecording( QThread ):
         return fn
     
     def compare_image( self , img2 ):
-        hash_h , hash_w = ( 10 , 19 )
+        hash_h , hash_w = ( 16 , 8 )
         img1 = self.img_last
         Image_01 = Image.fromarray( img1 )
         Image_02 = Image.fromarray( img2 )
-        Image_01 = Image_01.resize( size = ( hash_h , hash_w ) )
-        Image_02 = Image_02.resize( size = ( hash_h , hash_w ) )
+        Image_01 = Image_01.resize( size = ( hash_h , hash_w ) , resample = Image.NEAREST )
+        Image_02 = Image_02.resize( size = ( hash_h , hash_w ) , resample = Image.NEAREST )
         Image_gray_01 = ImageOps.grayscale( Image_01 )
         Image_gray_02 = ImageOps.grayscale( Image_02 )
         img1 = self.imgData.toNdarray( Image_gray_01 )
         img2 = self.imgData.toNdarray( Image_gray_02 )
         img1 = img1[ 0 : hash_w , 0 : hash_h - 1 ] # 少掉畫面底部
         img2 = img2[ 0 : hash_w , 0 : hash_h - 1 ]
-        img1_average = np.sum( img1 ) / ( hash_h * hash_w )
-        img2_average = np.sum( img2 ) / ( hash_h * hash_w )
+        img1_average = np.sum( img1 ) / ( ( hash_h - 1 ) * hash_w )
+        img2_average = np.sum( img2 ) / ( ( hash_h - 1 ) * hash_w )
         hash_str_01 = ""
         hash_str_02 = ""
         # 均值
@@ -208,13 +197,21 @@ class preventLockDesktop( QtCore.QObject ):
         super().__init__( parent )
         
         self.timer = QtCore.QBasicTimer()
-        # self.isWork = False
         self.isPause = False
+        self.mx_limit = win32api.GetSystemMetrics( 0 )
+        self.my_limit = win32api.GetSystemMetrics( 1 )
+        self.mx_dir = 1
+        self.my_dir = 1
+        self.mx_offset = 20
+        self.my_offset = 0
         self.mx = 0
         self.my = 0
     
     def start_prevent( self ):
-        self.timer.start( 300000 , self ) # 5 分鐘檢查一次, 15 分鐘無動作自動登出
+        self.timer.start( 60000 , self ) # 5 分鐘檢查一次, 15 分鐘無動作自動登出
+    
+    def stop_prevent( self ):
+        self.timer.stop()
     
     def timerEvent( self , event ):
         if ( event.timerId() != self.timer.timerId() ):
@@ -226,11 +223,21 @@ class preventLockDesktop( QtCore.QObject ):
         
         x , y = win32api.GetCursorPos()
         if x == self.mx and y == self.my:
-            win32api.SetCursorPos( ( x + 1 , y ) )
-            win32api.SetCursorPos( ( x , y ) )
+            nx = self.mx_dir * self.mx_offset + x
+            ny = self.my_dir * self.my_offset + y
+            if nx < 0 or nx >= self.mx_limit:
+                self.mx_dir *= -1
+                nx = self.mx_dir * self.mx_offset + x
+            if ny < 0 or ny >= self.my_limit:
+                self.my_dir *= -1
+                ny = self.my_dir * self.my_offset + y
+            win32api.SetCursorPos( ( nx , ny ) )
+        else:
+            nx = x
+            ny = y
         
-        self.mx = x
-        self.my = y
+        self.mx = nx
+        self.my = ny
         
 
 class screenRecording_control( QThread ):
@@ -243,9 +250,7 @@ class screenRecording_control( QThread ):
         self.screen_recording.start()
         self.screen_video = screenVideo()
         self.screen_video.image_data.connect( self.screen_recording.image_data_slot )
-        self.screen_video.start_recording()
         self.prevent_lock_desktop = preventLockDesktop()
-        self.prevent_lock_desktop.start_prevent()
     
     def alive( self ):
         return self.isWork == True
@@ -253,19 +258,28 @@ class screenRecording_control( QThread ):
     def run( self ):
         self.isWork = True
         while self.alive():
-            self.q_cmd.get()
+            item = self.q_cmd.get()
+            if item is None:
+                break
+            
+            if item == "get_screenshot":
+                self.screen_video.image_data.emit( self.screen_video.imgData.toNdarray( ImageGrab.grab() ) )
         self.isWork = False
     
     def set_screenshot_save_mode( self , isSave ):
-        print( isSave )
-        self.screen_video.isSave     = isSave
-        # self.screen_recording.isSave = True
+        if isSave:
+            self.screen_video.start_recording()
+        else:
+            self.screen_video.stop_recording()
     
     def set_prevent_pause_mode( self , value ):
-        self.prevent_lock_desktop.isPause = not value
+        if value:
+            self.prevent_lock_desktop.start_prevent()
+        else:
+            self.prevent_lock_desktop.stop_prevent()
     
     def get_screenshot( self ):
-        self.screen_video.get_screenshot_limit += 1
+        self.q_cmd.put( "get_screenshot" )
 
 if __name__ == "__main__":
     img = QImage( os.path.join( "dev" , "熊大農場" , "ADB_0223.png" ) )
