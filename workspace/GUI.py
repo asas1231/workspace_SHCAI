@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QWidget, QGridLayout, QLineEdit, QLabel,
     QHBoxLayout, QVBoxLayout, QPushButton, QApplication, QCheckBox,
     QMessageBox, QSizePolicy, QListWidget, QStackedWidget, QFrame,
-    QAbstractScrollArea)
+    QAbstractScrollArea, QPlainTextEdit)
 from PyQt5.QtGui import QPixmap
 from PyQt5 import QtCore
 from PyQt5.QtCore import *
@@ -20,6 +20,11 @@ import configparser
 # import cv2
 import queue
 import win32api, win32con
+
+import re
+import urllib
+from bs4 import BeautifulSoup as bs
+# from pyquery import PyQuery as pq
 
 import workspace.ImageData as ImgD
 import screen_recording.screen_recording
@@ -86,6 +91,7 @@ class Main_Widget(QWidget):
         
         self.initUI_dev()
         self.initUI_screenRecording()
+        self.initUI_tabooNovel()
         # self.initUI_ADB()
         # self.initUI_farm()
         
@@ -233,6 +239,46 @@ class Main_Widget(QWidget):
         index = self.UI_stack.addWidget( stack )
         self.UI_list.insertItem( index , '螢幕錄影' )
     
+    def initUI_tabooNovel( self ):
+        # TODO multi-website
+        grid = QGridLayout()
+        self.tabooNovel_url_Edit = QLineEdit( "" )
+        grid.addWidget( self.tabooNovel_url_Edit , *( 0 , 0 ) )
+        self.tabooNovel_download_Button = QPushButton( "下載" , self )
+        grid.addWidget( self.tabooNovel_download_Button , *( 0 , 1 ) )
+        
+        self.tabooNovel_ = QLabel( "" )
+        # TODO
+        # https://www.cnblogs.com/yinsedeyinse/p/10841987.html, 訊息框行號
+        sp = QSizePolicy()
+        sp.setHorizontalPolicy( QSizePolicy.Expanding )
+        sp.setHorizontalStretch( 1 )
+        sp.setVerticalPolicy( QSizePolicy.Expanding )
+        sp.setVerticalStretch( 1 )
+        self.tabooNovel_infomation_PTE = QPlainTextEdit()
+        self.tabooNovel_infomation_PTE.setReadOnly( True )
+        self.tabooNovel_infomation_PTE.setLineWrapMode( QPlainTextEdit.NoWrap )
+        self.tabooNovel_infomation_PTE.setSizePolicy( sp )
+        
+        # self.screenRecording_imagebox_item_widget = ImageboxItemWidget( self )
+        # grid.setColumnStretch( 0 , 1 )
+        # grid.setColumnStretch( 1 , 1 )
+        # sp = QSizePolicy()
+        # sp.setHorizontalPolicy( QSizePolicy.Expanding )
+        # sp.setHorizontalStretch( 1 )
+        # sp.setVerticalPolicy( QSizePolicy.Expanding )
+        # sp.setVerticalStretch( 1 )
+        # self.screenRecording_imagebox_item_widget.setSizePolicy( sp )
+        layout = QVBoxLayout()
+        layout.addLayout( grid )
+        layout.addWidget( self.tabooNovel_infomation_PTE )
+        # layout.addWidget( self.screenRecording_imagebox_item_widget )
+        
+        stack = QWidget()
+        stack.setLayout( layout )
+        index = self.UI_stack.addWidget( stack )
+        self.UI_list.insertItem( index , '禁忌' )
+    
     def initParameters( self ):
         self.UI_list.currentRowChanged.connect( self.UI_list_display )
         
@@ -241,6 +287,7 @@ class Main_Widget(QWidget):
         
         self.initParameters_dev()
         self.initParameters_screenRecording()
+        self.initParameters_tabooNovel()
         # self.initParameters_ADB()
         # self.initParameters_farm()
     
@@ -286,6 +333,11 @@ class Main_Widget(QWidget):
         self.screenRecording_recording_Button.clicked.connect( self.screenRecording_recording_switch )
         self.screenRecording_prevent_lock_desktop_CheckBox.clicked.connect( self.screenRecording_prevent_lock_desktop_switch )
         self.screenRecording_screenshot_Button.clicked.connect( self.screenRecording_screenshot )
+    
+    def initParameters_tabooNovel( self ):
+        self.tabooNovel_save_path = "taboo\\novel\\result"
+        self.tabooNovel_download_Button.clicked.connect( self.tabooNovel_download_fun )
+        self.tabooNovel_downloader = TabooNovelDownload( self.tabooNovel_save_path , self.tabooNovel_info )
     
     def UI_list_display( self , UI_index ):
         self.UI_stack.setCurrentIndex( UI_index )
@@ -539,6 +591,17 @@ class Main_Widget(QWidget):
         self.screenRecording_exe.get_screenshot()
         if not self.screenRecording_exe.alive():
             self.screenRecording_exe.start()
+    
+    def tabooNovel_info( self , _s ):
+        self.tabooNovel_infomation_PTE.appendPlainText( "%s %s" % ( time.strftime( "[%Y-%m-%d %H:%M:%S]" , time.localtime() ) , _s ) )
+    
+    def tabooNovel_download_fun( self ):
+        if self.tabooNovel_downloader.isAlive() == False:
+            self.tabooNovel_downloader.setUrl( self.tabooNovel_url_Edit.text() )
+            self.tabooNovel_downloader.start()
+        else:
+            self.tabooNovel_info( "Already processing..." )
+
 
 class BackendThread_click_answer( QThread ):
     endSignal = pyqtSignal()
@@ -567,7 +630,132 @@ class BackendThread_click_answer( QThread ):
         
         self.endSignal.emit()
 
+class TabooNovelDownload( QThread ):
+    def __init__( self , tabooNovel_save_path , info , parent = None ):
+        QThread.__init__( self , parent )
+        self.info = info
+        self.tabooNovel_save_path = tabooNovel_save_path
+        self.isWork = False
+    
+    def tabooNovel_session_get( self , url ):
+        # if proxies[ 0 ] == {} :
+            # time.sleep( max( 0 , timestamp + random.randint( 1 , 5 ) - time.time() ) )
+        # else:
+            # time.sleep( max( 0 , timestamp + random.randint( 1 , 2 ) - time.time() ) )
+        time.sleep( max( 0 , self.tabooNovel_timestamp + random.randint( 3 , 7 ) - time.time() ) )
+        while True:
+            # headers[ 'User-Agent' ] = ua.random
+            # headers[ 'User-Agent' ] = ua.google
+            # IP = get_proxy()
+            # proxies = { 'http' : 'http://' + IP , 'https' : 'http://' + IP }
+            proxies = {}
+            try:
+                r = self.tabooNovel_session.get( url , headers = self.tabooNovel_headers , proxies = proxies , timeout = 2 )
+                status_code = r.status_code
+            except:
+                status_code = -1
+            if status_code == 401:
+                sleep_time = 10 + random.randint( 0 , 10 )
+                self.info( 'Sleep %d secs. status_code: %d' % ( sleep_time , status_code ) )
+                time.sleep( sleep_time )
+                # proxy_add_time( IP , 10 + random.randint( 0 , 10 ) )
+            elif status_code == 200:
+                break
+            elif status_code in self.tabooNovel_block_connect :
+                # proxy_add_time( IP , 3600 )
+                sleep_time = 120 + random.randint( 0 , 60 )
+                self.info( 'Sleep %d secs. status_code: %d' % ( sleep_time , status_code ) )
+                time.sleep( sleep_time )
+            else:
+                sleep_time = 300 + random.randint( 0 , 60 )
+                self.info( 'Sleep %d secs. other status_code: %d' % ( sleep_time , status_code ) )
+                time.sleep( sleep_time )
+                # proxy_add_time( IP , 30 + random.randint( 0 , 10 ) )
+                # print( 'status code: ' , status_code )
+                pass
+        self.tabooNovel_timestamp = time.time()
+        return r
+    
+    def isAlive( self ):
+        return self.isWork == True
+    
+    def setUrl( self , url ):
+        self.tabooNovel_url = url
+    
+    def run( self ):
+        self.isWork = True
+        # self.tabooNovel_save_path
+        self.tabooNovel_block_connect = [ 429 , 403 , 404 , 407 ]
+        self.tabooNovel_session = requests.Session()
+        self.tabooNovel_timestamp = time.time() - 1000
+        
+        self.tabooNovel_headers = {}
+        fp = open( "profile\\tabooNovel_header.txt" , "r" , encoding = "utf-8" )
+        for line in fp.readlines():
+            [ d1 , d2 ] = line.split( '\n' )[ 0 ].split( ': ' )
+            self.tabooNovel_headers[ d1 ] = d2
 
+        fp.close()
+        self.info( "Success to load header." )
+        
+        response_menu = self.tabooNovel_session_get( self.tabooNovel_url )
+        soup = bs( response_menu.text , 'html.parser' )
+        
+        # Get file name
+        tag_span_list = soup.select( '.top span' )
+        file_name = tag_span_list[ 1 ].decode_contents() + "_" + tag_span_list[ 0 ].decode_contents()
+        self.info( 'File name: %s' % file_name )
+        
+        novel_chapter_list = []
+        for tag_a in soup.select('div.list a'):
+            novel_chapter_list.append( [ urllib.parse.urljoin( self.tabooNovel_url , tag_a.get( "href" ) ) , tag_a.decode_contents() ] )
+        
+        content = [ '' ] * len( novel_chapter_list )
+        
+        with open( os.path.join( self.tabooNovel_save_path , file_name + ".txt" ) , "w" , encoding = "utf-8" ) as fp:
+            res = ""
+            fp_c = 0
+            for index in range( len( novel_chapter_list ) ):
+                url = novel_chapter_list[ index ][ 0 ]
+                response_content = self.tabooNovel_session_get( url )
+                soup = bs( response_content.text , 'html.parser' )
+                # title
+                self.info( soup.select( 'h1' )[ 0 ].decode_contents() )
+                res = ( "Chaper %5d\n\n" % ( index + 1 ) ) + soup.select( 'h1' )[ 0 ].decode_contents() + '\n\n'
+                # content
+                ss = str( soup.select( '#content' )[ 0 ].decode_contents() ).strip()
+                ss_len = len( ss ) + 1
+                while ss.find( '&' ) != -1 and len( ss ) < ss_len:
+                    ss_len = len( ss )
+                    ss = html.unescape( ss ).strip()
+                
+                ss = re.sub( r'<[/]{0,1}[a-zA-Z]{0,}?>' , r'\n' , ss )
+                ss = re.sub( r'<!--.{0,7}-->' , r'\n' , ss )
+                res += ss
+                fw_len = fp.write( res + "\n\n" )
+                
+                # Refresh headers 'Referer'
+                self.tabooNovel_headers[ 'Referer' ] = url
+                fp_c += 1
+                if fp_c >= 10:
+                    fp.flush()
+                    fp_c = 0
+        
+        # blank
+        self.info( "Process file blank..." )
+        fp = open( os.path.join( self.tabooNovel_save_path , file_name + ".txt" ) , "r" , encoding = "utf-8" )
+        lines = fp.readlines()
+        fp.close()
+
+        fp = open( os.path.join( self.tabooNovel_save_path , file_name + ".txt" ) , "w" , encoding = "utf-8" )
+        for line in lines:
+            ss = line.strip()
+            if len( ss ) > 0:
+                fw_len = fp.write( ss + "\n\n" )
+
+        fp.close()
+        self.info( "Finish to download. %s" % file_name )
+        self.isWork = False
          
 if __name__ == "__main__":
     app = QApplication( sys.argv )
