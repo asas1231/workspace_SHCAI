@@ -1,3 +1,4 @@
 *.pyc
 profile*.ini
 test*
+profile/workspace.ini
