@@ -1,9 +1,14 @@
+' https://www.w3schools.com/asp/asp_ref_vbscript_functions.asp
 Function NTP()
   ' WScript.Echo "Get NTP time..."
+  offsetSeconds = 28800 + 0
+  changeLimit = 60000
   set objXML = CreateObject( "Microsoft.XMLHTTP" )
   ' objXML.Open "PUT", "http://utcnist.colorado.edu:13", False
   ' objXML.Open "PUT", "http://time-a-g.nist.gov:13", False
-  objXML.Open "GET", "https://www.google.com", False
+  webURL = "https://www.google.com?randombit=" & Rnd()
+  ' WScript.Echo webURL
+  objXML.Open "GET", webURL, False
   objXML.Send
   If objXML.Status = 200 Then
     ' WScript.Echo objXML.getAllResponseHeaders
@@ -11,9 +16,39 @@ Function NTP()
     ' WScript.Echo objXML.responsetext
     ' WScript.Echo "Computer time: " & Now()
     ' WScript.Echo "Computer time: " & %time%
+    str = objXML.getAllResponseHeaders
+    arr = Split( str , vbCrLf )
+    For i = 0 To UBound( arr )
+        ' WScript.Echo i & " " & InStr( LCase( arr( i ) ) , "date:" ) & ": " & arr( i )
+        If InStr( LCase( arr( i ) ) , "date:" ) > 0 Then
+            dateTime = Trim( Right( arr( i ) , Len( arr( i ) ) - ( 4 + InStr( LCase( arr( i ) ) , "date:" ) ) ) )
+        End If
+    Next
+    ' WScript.Echo "Date time: " & dateTime
+    serverTime = Mid( dateTime , InStr( dateTime , ":" ) - 2 , 8 )
+    ' WScript.Echo "Server time: " & serverTime
+    serverHour   = CInt( Mid( serverTime , 1 , 2 ) )
+    serverMinute = CInt( Mid( serverTime , 4 , 2 ) )
+    serverSecond = CInt( Mid( serverTime , 7 , 2 ) ) + offsetSeconds
+    serverMinute = serverMinute + serverSecond \ 60
+    serverSecond = serverSecond Mod 60
+    serverHour   = serverHour   + serverMinute \ 60
+    serverMinute = serverMinute Mod 60
+    serverHour   = serverHour   Mod 24
+    ' WScript.Echo serverHour & ":" & serverMinute & ":" & serverSecond
+    If serverHour < 23 And serverHour > 0 Then
+        ' WScript.Echo "Now time: " & Timer
+        If Abs( ( ( serverHour * 60 + serverMinute ) * 60 + serverSecond ) - Timer ) < changeLimit Then
+            ' WScript.Echo Hour( dateTime ) & ":" & Minute( dateTime )  & ":" & Second( dateTime )
+            NewLocalTime = serverHour & ":" & serverMinute & ":" & serverSecond
+            ' WScript.Echo NewLocalTime
+            Set oShell = CreateObject ( "WScript.Shell" )
+            oShell.run "cmd.exe /C TIME " & NewLocalTime
+        End If
+    End If
   End If
-  Set oShell = CreateObject ( "WScript.Shell" )
-  oShell.run "cmd.exe /C TIME 23:59:59"
+  ' Set oShell = CreateObject ( "WScript.Shell" )
+  ' oShell.run "cmd.exe /C TIME 23:59:59"
   ' WScript.Echo objXML.Status
 
   ' If objXML.Status = 200 Then  ' If HTTP request OK
