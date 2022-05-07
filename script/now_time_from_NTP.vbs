@@ -5,15 +5,21 @@ Function NTP()
   changeLimit = 60000
   set objXML = CreateObject( "Microsoft.XMLHTTP" )
   ' objXML.Open "PUT", "http://utcnist.colorado.edu:13", False
-  ' objXML.Open "PUT", "http://time-a-g.nist.gov:13", False
-  webURL = "https://www.google.com?randombit=" & Rnd()
-  ' WScript.Echo webURL
+  webURL = "http://time-a-g.nist.gov:13"
+  webURL = "http://tock.stdtime.gov.tw:13"
+  webURL = "http://time.chttl.com.tw:13?randombit=" & Timer
+  webURL = "time.windows.com"
+  ' webURL = "https://www.google.com?randombit=" & Rnd()
+  WScript.Echo webURL
   objXML.Open "GET", webURL, False
   objXML.Send
   If objXML.Status = 200 Then
-    ' WScript.Echo objXML.getAllResponseHeaders
+    WScript.Echo "Response Headers:"
+    WScript.Echo objXML.getAllResponseHeaders
     ' WScript.Echo objXML.statusText
-    ' WScript.Echo objXML.responsetext
+    WScript.Echo ""
+    WScript.Echo "Response Text"
+    WScript.Echo objXML.responsetext
     ' WScript.Echo "Computer time: " & Now()
     ' WScript.Echo "Computer time: " & %time%
     str = objXML.getAllResponseHeaders
@@ -36,7 +42,7 @@ Function NTP()
     serverMinute = serverMinute Mod 60
     serverHour   = serverHour   Mod 24
     ' WScript.Echo serverHour & ":" & serverMinute & ":" & serverSecond
-    If serverHour < 23 And serverHour > 0 Then
+    If serverHour < 23 And serverHour > 0 And False Then
         ' WScript.Echo "Now time: " & Timer
         If Abs( ( ( serverHour * 60 + serverMinute ) * 60 + serverSecond ) - Timer ) < changeLimit Then
             ' WScript.Echo Hour( dateTime ) & ":" & Minute( dateTime )  & ":" & Second( dateTime )
@@ -75,4 +81,28 @@ Function NTP()
   Set objXML = Nothing
 End Function
 
-call NTP
+' call NTP
+call RequestTimeFromNTP
+
+Function RequestTimeFromNTP()
+    Set objSkt = CreateObject( "MSWINSOCK.Winsock" )
+    WScript.Echo "End Request Time From NTP"
+End Function
+
+' import socket
+' import struct
+' import sys
+' import time
+' def RequestTimefromNtp(addr='time.windows.com'):
+'     REF_TIME_1970 = 2208988800  # Reference time
+'     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+'     data = b'\x1b' + 47 * b'\0'
+'     client.sendto(data, (addr, 123))
+'     data, address = client.recvfrom(1024)
+'     if data:
+'         t = struct.unpack('!12I', data)[10]
+'         t -= REF_TIME_1970
+'     return time.ctime(t), t
+' 
+' >>> RequestTimefromNtp()
+' ('Sat Apr  9 18:55:47 2022', 1649501747)

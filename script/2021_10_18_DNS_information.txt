@@ -1,0 +1,166 @@
+Status:Old setting
+TIME:20211018074822.756000+480
+
+Server:  dns.google
+Address:  8.8.8.8
+
+Name:    dns.google
+Address:  8.8.8.8
+
+Interface:"區域連線* 3"
+DNS:NONE
+
+Interface:"區域連線* 12"
+DNS:NONE
+
+Interface:"Wi-Fi"
+DNS:8.8.8.8
+DNS:8.8.4.4
+
+Interface:"藍牙網路連線"
+DNS:NONE
+
+Interface:"Loopback Pseudo-Interface 1"
+DNS:NONE
+
+Status:Old setting
+TIME:20211018074838.883000+480
+
+Server:  dns.google
+Address:  8.8.8.8
+
+Name:    dns.google
+Address:  8.8.8.8
+
+Interface:"區域連線* 3"
+DNS:NONE
+
+Interface:"區域連線* 12"
+DNS:NONE
+
+Interface:"Wi-Fi"
+DNS:8.8.8.8
+DNS:8.8.4.4
+
+Interface:"藍牙網路連線"
+DNS:NONE
+
+Interface:"Loopback Pseudo-Interface 1"
+DNS:NONE
+
+
+
+
+Status:New setting
+Status:Old setting
+TIME:20211018074904.041000+480
+
+Server:  dns.google
+Address:  8.8.8.8
+
+Name:    dns.google
+Address:  8.8.8.8
+
+Interface:"區域連線* 3"
+DNS:NONE
+
+Interface:"區域連線* 12"
+DNS:NONE
+
+Interface:"Wi-Fi"
+DNS:8.8.8.8
+DNS:8.8.4.4
+
+Interface:"藍牙網路連線"
+DNS:NONE
+
+Interface:"Loopback Pseudo-Interface 1"
+DNS:NONE
+
+
+
+
+Status:New setting
+Status:Old setting
+TIME:20211018074941.037000+480
+
+Server:  dns.google
+Address:  8.8.8.8
+
+Name:    dns.google
+Address:  8.8.8.8
+
+Interface:"區域連線* 3"
+DNS:NONE
+
+Interface:"區域連線* 12"
+DNS:NONE
+
+Interface:"Wi-Fi"
+DNS:8.8.8.8
+DNS:8.8.4.4
+
+Interface:"藍牙網路連線"
+DNS:NONE
+
+Interface:"Loopback Pseudo-Interface 1"
+DNS:NONE
+
+
+
+
+Status:New setting
+Status:Old setting
+TIME:20211018075059.917000+480
+
+Server:  dns.google
+Address:  8.8.8.8
+
+Name:    dns.google
+Address:  8.8.8.8
+
+Interface:"區域連線* 3"
+DNS:NONE
+
+Interface:"區域連線* 12"
+DNS:NONE
+
+Interface:"Wi-Fi"
+DNS:8.8.8.8
+DNS:8.8.4.4
+
+Interface:"藍牙網路連線"
+DNS:NONE
+
+Interface:"Loopback Pseudo-Interface 1"
+DNS:NONE
+
+
+
+
+Status:New setting
+Status:Old setting
+TIME:20211018075111.822000+480
+
+Server:  dns.google
+Address:  8.8.8.8
+
+Name:    dns.google
+Address:  8.8.8.8
+
+Interface:"區域連線* 3"
+DNS:NONE
+
+Interface:"區域連線* 12"
+DNS:NONE
+
+Interface:"Wi-Fi"
+DNS:8.8.8.8
+DNS:8.8.4.4
+
+Interface:"藍牙網路連線"
+DNS:NONE
+
+Interface:"Loopback Pseudo-Interface 1"
+DNS:NONE
+
